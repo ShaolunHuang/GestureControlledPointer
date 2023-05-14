@@ -43,15 +43,19 @@ class VirtualInputOnMP:
             for hand_class, hand_landmarks in zip(self.results.multi_handedness, self.results.multi_hand_landmarks):
                 x_list = []
                 y_list = []
+                z_list = []
                 curr_lmList = []
                 curr_hand = {}
-                for hand_id, lm in enumerate(hand_landmarks.landmark):
-                    cx, cy = int(lm.x * w), int(lm.y * h)
+                for finger_id, lm in enumerate(hand_landmarks.landmark):
+                    cx, cy, cz = int(lm.x * w), int(lm.y * h), int(lm.z * w)
                     x_list.append(cx)
                     y_list.append(cy)
-                    curr_lmList.append([hand_id, cx, cy])
+                    z_list.append(cz)
+                    curr_lmList.append([finger_id, cx, cy, cz])
                     if draw:
                         cv2.circle(img, (cx, cy), 5, (255, 0, 255), cv2.FILLED)
+                        cv2.putText(img, str(cz), (cx, cy), cv2.FONT_HERSHEY_PLAIN,
+                                    2, (0, 0, 0), 2)
                 xmin, xmax = min(x_list), max(x_list)
                 ymin, ymax = min(y_list), max(y_list)
                 bbox = xmin, ymin, xmax, ymax
@@ -98,9 +102,9 @@ class VirtualInputOnMP:
         cx_left, cy_left = -1, -1
         cx_right, cy_right = -1, -1
 
-        def get_length(p1, p2):
-            x1, y1 = p1
-            x2, y2 = p2
+        def get_length(pt1, pt2):
+            x1, y1 = pt1
+            x2, y2 = pt2
             cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
 
             if draw:
@@ -108,16 +112,48 @@ class VirtualInputOnMP:
                 cv2.circle(img, (x1, y1), r, (255, 0, 255), cv2.FILLED)
                 cv2.circle(img, (x2, y2), r, (255, 0, 255), cv2.FILLED)
                 cv2.circle(img, (cx, cy), r, (0, 0, 255), cv2.FILLED)
+
             length = math.hypot(x2 - x1, y2 - y1)
             return length, cx, cy
 
         if len(self.hand_list["Left"]) != 0:
             left_lmList = self.hand_list["Left"][0]["lmList"]
-            left_length, cx_left, cy_left = get_length(left_lmList[p1][1:], left_lmList[p2][1:])
+            x1, y1 = left_lmList[p1][1:3]
+            x2, y2 = left_lmList[p2][1:3]
+            left_length, cx_left, cy_left = get_length((x1, y1), (x2, y2))
         if len(self.hand_list["Right"]) != 0:
             right_lmList = self.hand_list["Right"][0]["lmList"]
-            right_length, cx_right, cy_right = get_length(right_lmList[p1][1:], right_lmList[p2][1:])
-        return left_length, right_length, img, [(cx_left, cy_left), (cx_right, cy_right)]
+            x1, y1 = right_lmList[p1][1:3]
+            x2, y2 = right_lmList[p2][1:3]
+            right_length, cx_right, cy_right = get_length((x1, y1), (x2, y2))
+        return left_length, right_length, img, [cx_left, cy_left, cx_right, cy_right]
+
+    def find_distance3d(self, p1, p2, img, draw=True, r=15, t=3):
+        left_length = -1
+        right_length = -1
+        cx_left, cy_left, cz_left = -1, -1, -1
+        cx_right, cy_right, cz_right = -1, -1, -1
+
+        def get_length(pt1, pt2):
+            x1, y1, z1 = pt1
+            x2, y2, z2 = pt2
+            cx, cy, cz = (x1 + x2) // 2, (y1 + y2) // 2, (z1 + z2) // 2
+
+            if draw:
+                cv2.line(img, (x1, y1), (x2, y2), (255, 0, 255), t)
+                cv2.circle(img, (x1, y1), r, (255, 0, 255), cv2.FILLED)
+                cv2.circle(img, (x2, y2), r, (255, 0, 255), cv2.FILLED)
+                cv2.circle(img, (cx, cy), r, (0, 0, 255), cv2.FILLED)
+            length = math.hypot(x2 - x1, y2 - y1, z2 - z1)
+            return length, cx, cy, cz
+
+        if len(self.hand_list["Left"]) != 0:
+            left_lmList = self.hand_list["Left"][0]["lmList"]
+            left_length, cx_left, cy_left, cz_left = get_length(left_lmList[p1][1:], left_lmList[p2][1:])
+        if len(self.hand_list["Right"]) != 0:
+            right_lmList = self.hand_list["Right"][0]["lmList"]
+            right_length, cx_right, cy_right, cz_right = get_length(right_lmList[p1][1:], right_lmList[p2][1:])
+        return left_length, right_length, img, [(cx_left, cy_left, cz_left), (cx_right, cy_right, cz_right)]
 
 
 def main():
@@ -125,6 +161,8 @@ def main():
     cTime = 0
     cap = cv2.VideoCapture(0)
     detector = VirtualInputOnMP()
+    left_fingers, right_fingers = [], []
+    left_length, right_length = -1, -1
     while True:
         success, img = cap.read()
         img = cv2.flip(img, 1)
