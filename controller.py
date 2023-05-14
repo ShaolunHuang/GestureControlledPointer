@@ -13,12 +13,11 @@ class HandType(Enum):
 
 
 class VirtualInputOnMP:
-    def __init__(self, mode=False, max_hands=2, hand_type=HandType.RIGHT):
+    def __init__(self, mode=False, max_hands=2):
         self.hand_list = collections.defaultdict(list)
         self.results = None
         self.mode = mode
         self.max_hands = max_hands
-        self.hand_type = hand_type
 
         self.mp_hands = mp.solutions.hands
         self.hands = self.mp_hands.Hands(self.mode, self.max_hands)
@@ -135,13 +134,13 @@ def main():
             left_fingers, right_fingers = detector.fingers_up()
             left_length, right_length, img, _ = detector.find_distance(8, 12, img)
         if len(lmList[HandType.RIGHT.value]) != 0:
-            print("right venv position: ", lmList[HandType.RIGHT.value][0]["lmList"][4])
-            print("right venv fingers: ", right_fingers)
-            print("right venv length: ", right_length)
+            print("right hand position: ", lmList[HandType.RIGHT.value][0]["lmList"][4])
+            print("right hand fingers: ", right_fingers)
+            print("right hand length: ", right_length)
         if len(lmList[HandType.LEFT.value]) != 0:
-            print("left venv position: ", lmList[HandType.LEFT.value][0]["lmList"][4])
-            print("left venv fingers: ", left_fingers)
-            print("left venv length: ", left_length)
+            print("left hand position: ", lmList[HandType.LEFT.value][0]["lmList"][4])
+            print("left hand fingers: ", left_fingers)
+            print("left hand length: ", left_length)
 
         cTime = time.time()
         fps = 1 / (cTime - pTime)
