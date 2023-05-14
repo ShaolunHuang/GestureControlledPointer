@@ -1,0 +1,14 @@
+pip~=22.2.2
+attrs~=23.1.0
+wheel~=0.37.1
+cryptography~=37.0.4
+Pillow~=9.4.0
+tornado~=6.3.1
+Jinja2~=3.1.2
+setuptools~=67.7.2
+packaging~=21.3
+pyparsing~=3.0.9
+zipp~=3.8.1
+opencv-python~=4.7.0.72
+mediapipe~=0.10.0
+numpy~=1.24.1
